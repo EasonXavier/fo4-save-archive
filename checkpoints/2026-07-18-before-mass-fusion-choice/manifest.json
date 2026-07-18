@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "checkpointId": "2026-07-18-before-mass-fusion-choice",
+  "title": "Before Mass Fusion choice; Mankind - Redefined completed",
+  "branch": "main",
+  "createdAt": "2026-07-19T00:45:53.3775069+08:00",
+  "save": {
+    "fos": {
+      "fileName": "Save21_0844E2E3M416E646572736F6E_InstituteConcourse_031516_20260718163529_106_2.fos",
+      "sizeBytes": 13628875,
+      "sha256": "4e150647a3c200978f5c9c26781f830049a824cad3390a412598999cbb16d61e"
+    },
+    "f4seCoSave": {
+      "status": "present",
+      "fileName": "Save21_0844E2E3M416E646572736F6E_InstituteConcourse_031516_20260718163529_106_2.f4se",
+      "sizeBytes": 783,
+      "sha256": "dd16387bde343ace10d0b38e719325ac96ed9b8ac7e341ef870a8b0338de6d2d"
+    }
+  },
+  "game": {
+    "location": "Institute",
+    "playTime": "3d 15h 16m",
+    "inGameDate": "unknown",
+    "currentCompanion": "Ada"
+  }
+}
