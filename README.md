@@ -2,7 +2,7 @@
 
 A public, version-controlled archive of my **Fallout 4** save files, quest progress, faction states, companion states, mod environment, and branching storylines.
 
-本仓库用于长期保存《辐射 4》的关键存档及其上下文，使我能够在未来任意时间准确回溯到某个剧情节点，而不只是保留一个无法辨认的 `.fos` 文件。
+本仓库用于长期保存《辐射 4》的关键存档及其上下文，使我能够在未来任意时间准确回溯到某个剧情节点，而不只是保留一个无法辨认的存档文件。
 
 ## Branch model
 
@@ -39,6 +39,25 @@ story/nuka-world
 
 故事线分支不会合并回 `main`。`main` 始终停留在阵营分叉前的公共时间线。
 
+## Save-pair policy
+
+使用 F4SE 时，一个逻辑存档通常由两个同名文件组成：
+
+```text
+<same-basename>.fos
+<same-basename>.f4se
+```
+
+- `.fos` 是 Fallout 4 主存档，始终必须存在；
+- `.f4se` 是 F4SE co-save，用于保存 F4SE 插件的附加持久化数据；
+- 两个文件除扩展名外，基础文件名必须完全一致；
+- 对应 `.f4se` 存在时，必须与 `.fos` 一起归档、校验、提交和恢复；
+- 不得把其他存档的 `.f4se` 与当前 `.fos` 配对；
+- 不得创建空 `.f4se` 或伪造缺失文件；
+- 已知使用 F4SE 但对应 `.f4se` 缺失时，提交前必须明确报告并等待决定；只有获得明确许可后，才能以 `missing` 状态归档。
+
+`.fos` 和 `.f4se` 均通过 Git LFS 管理。
+
 ## Repository layout
 
 ```text
@@ -46,6 +65,7 @@ checkpoints/
   YYYY-MM-DD-checkpoint-name/
     save/
       original-save-file.fos
+      original-save-file.f4se   # 使用 F4SE 且文件存在时必须包含
     progress.md
     manifest.json
     screenshots/
@@ -54,14 +74,49 @@ checkpoints/
       loadorder.txt
       modlist.txt
       runtime.txt
+incoming-saves/
+  README.md
 ```
 
 每个检查点至少应包含：
 
-- 原始 `.fos` 存档；
+- 原始 `.fos` 主存档；
+- 同名 `.f4se` co-save：对应文件存在时必须包含；
 - `progress.md`：人工可读的任务与剧情状态；
-- `manifest.json`：文件名、大小、SHA-256、分支和检查点元数据；
+- `manifest.json`：两个存档文件各自的文件名、大小、SHA-256、状态，以及分支和检查点元数据；
 - 必要时附任务日志截图和 MOD 环境记录。
+
+`incoming-saves` 是本地中转目录。实际 `.fos` 和 `.f4se` 文件被 `.gitignore` 排除，Codex 应复制文件到检查点目录，不得直接提交、移动或删除中转原文件。
+
+## Manifest save structure
+
+推荐结构：
+
+```json
+{
+  "schemaVersion": 2,
+  "save": {
+    "fos": {
+      "fileName": "original-save-file.fos",
+      "sizeBytes": 0,
+      "sha256": "lowercase SHA-256"
+    },
+    "f4seCoSave": {
+      "status": "present",
+      "fileName": "original-save-file.f4se",
+      "sizeBytes": 0,
+      "sha256": "lowercase SHA-256"
+    }
+  }
+}
+```
+
+`f4seCoSave.status` 使用以下值：
+
+- `present`：同名 `.f4se` 已归档；
+- `missing`：已知使用 F4SE，但对应文件缺失，并已获得明确许可继续归档；
+- `not-applicable`：明确未使用 F4SE 或该存档不产生 co-save；
+- `unknown`：现有证据无法确认。
 
 ## Checkpoint naming
 
@@ -93,6 +148,7 @@ YYYY-MM-DD-short-description
 - 已完成的重要支线、DLC 和同伴任务；
 - 聚落、关键 NPC 和关键物品状态；
 - Fallout 4 runtime、F4SE、插件顺序及关键 MOD；
+- `.fos` 与 `.f4se` 的配对和完整性状态；
 - 使用过的控制台命令；
 - 恢复该存档后应当先做和不应当做的事项。
 
@@ -100,13 +156,14 @@ YYYY-MM-DD-short-description
 
 ## Suggested workflow in VS Code and Codex
 
-1. 克隆仓库并在 VS Code 中打开。
-2. 将新的 `.fos` 文件复制到一个新的检查点目录。
-3. 向 Codex 提供任务日志截图、当前同伴和关键选择。
-4. 让 Codex依据根目录的 `AGENTS.md` 生成或更新 `progress.md` 与 `manifest.json`。
-5. 检查 `git diff` 和文件路径。
-6. 提交并推送当前分支。
-7. 到达不可逆阵营节点时，从 `main` 的最后安全提交创建对应 `story/*` 分支。
+1. 克隆仓库并在 VS Code 中打开；
+2. 确认本机已安装 Git LFS，并执行 `git lfs install`；
+3. 将新存档的同名 `.fos` 和 `.f4se` 放入 `incoming-saves`；
+4. 向 Codex 提供准确文件名、任务日志截图、当前同伴和关键选择；
+5. 让 Codex 依据根目录的 `AGENTS.md` 检查文件配对，复制到新的检查点目录，并生成 `progress.md` 与 `manifest.json`；
+6. 检查文件名、大小、SHA-256、`git diff` 和 Git LFS 属性；
+7. 提交并推送当前分支；
+8. 到达不可逆阵营节点时，从 `main` 的最后安全提交创建对应 `story/*` 分支。
 
 ## Commit messages
 
@@ -122,10 +179,12 @@ fix: correct quest state for checkpoint 2026-07-17
 
 ## Integrity and safety
 
-- 不修改 `.fos` 文件内容；
+- 不修改 `.fos` 或 `.f4se` 文件内容；
 - 不覆盖已有检查点中的存档；
 - 每个新存档使用新目录；
-- 为每个 `.fos` 记录 SHA-256；
+- 保留两个文件的原始文件名；
+- 分别为 `.fos` 和 `.f4se` 记录文件大小和 SHA-256；
+- 校验两个文件的基础文件名完全一致；
 - 不执行 force push；
 - 不改写已公开检查点的历史；
 - 不提交账号凭据、令牌、邮箱或其他敏感认证信息；
@@ -136,15 +195,16 @@ fix: correct quest state for checkpoint 2026-07-17
 ## Restoring a checkpoint
 
 1. 退出 Fallout 4；
-2. 检查该检查点的 `progress.md` 和 MOD 环境；
-3. 校验 `.fos` 的 SHA-256；
-4. 备份当前 `Documents/My Games/Fallout4/Saves`；
-5. 将目标 `.fos` 复制回存档目录；
-6. 恢复匹配的 DLC、Creation 和 MOD；
-7. 载入后再次核对任务日志、同伴和阵营状态。
+2. 检查该检查点的 `progress.md`、`manifest.json` 和 MOD 环境；
+3. 分别校验 `.fos` 和 `.f4se` 的 SHA-256；
+4. 确认两者基础文件名完全一致；
+5. 备份当前 `Documents/My Games/Fallout4/Saves`；
+6. 将目标 `.fos` 和对应 `.f4se` 一起复制回存档目录；
+7. 恢复匹配的 Fallout 4 runtime、F4SE、DLC、Creation 和 MOD；
+8. 载入后再次核对任务日志、同伴、阵营状态及依赖 F4SE 插件的状态。
 
 ## Current project rule
 
 目前的核心规则是：
 
-> **在未锁定阵营前，所有关键节点都进入 `main`；只有在剧情发生不可逆阵营分叉后，才从最后一个安全节点创建对应的故事线分支。**
+> **在未锁定阵营前，所有关键节点都进入 `main`；只有在剧情发生不可逆阵营分叉后，才从最后一个安全节点创建对应的故事线分支。使用 F4SE 时，同名 `.fos` 与 `.f4se` 作为一个逻辑存档整体归档。**
