@@ -4,11 +4,13 @@
 
 This repository archives Fallout 4 save checkpoints and their narrative context. Treat save integrity and factual task-state accuracy as more important than convenience.
 
+When F4SE is used, treat the matching `.fos` and `.f4se` files as one logical save pair.
+
 ## Source of truth
 
 Use only the following as evidence for a checkpoint:
 
-1. the save file supplied by the user;
+1. the save files supplied by the user;
 2. screenshots supplied by the user;
 3. explicit statements supplied by the user;
 4. existing metadata already committed for an earlier checkpoint.
@@ -34,9 +36,26 @@ Before creating or updating a checkpoint, run:
 git status --short --branch
 git branch --show-current
 git pull --ff-only
+git lfs install
+git lfs env
 ```
 
 If the current branch does not match the checkpoint's story state, stop and explain the mismatch.
+
+## Incoming staging directory
+
+The local staging directory is:
+
+```text
+incoming-saves/
+```
+
+Actual save payloads in this directory are ignored by Git.
+
+- Read files from `incoming-saves`, but do not commit them directly from that directory.
+- Copy files into a new checkpoint directory.
+- Do not move, rename, modify, overwrite, or delete the staging originals.
+- Do not remove an incoming file after a successful checkpoint unless the user explicitly requests it.
 
 ## Checkpoint rules
 
@@ -49,32 +68,81 @@ checkpoints/YYYY-MM-DD-short-description/
 A checkpoint should contain:
 
 ```text
-save/<original filename>.fos
+save/<original basename>.fos
+save/<original basename>.f4se   # required when the matching co-save exists
 progress.md
 manifest.json
-screenshots/        # optional
-environment/        # optional
+screenshots/                    # optional
+environment/                    # optional
 ```
 
-Never overwrite, rename, edit, normalize, compress, or otherwise modify a supplied `.fos` file unless the user explicitly asks for a separate copy. Preserve the original filename.
+### Save-pair requirements
 
-Do not delete older save files because a newer checkpoint exists.
+- `.fos` is the primary Fallout 4 save and is always required.
+- `.f4se` is the F4SE co-save used by F4SE plugins for additional serialized state.
+- The two files must have exactly the same basename before the extension.
+- If a matching `.f4se` exists, archive it with the `.fos`.
+- Never pair a `.fos` with a similarly named but non-matching `.f4se`.
+- Never generate an empty or replacement `.f4se`.
+- Never overwrite, rename, edit, normalize, compress, or otherwise modify either supplied file.
+- Preserve both original filenames.
+- Do not delete older save files because a newer checkpoint exists.
+
+If the user is known to use F4SE but the exact matching `.f4se` is missing:
+
+1. stop before commit;
+2. report the missing co-save;
+3. do not substitute another file;
+4. wait for explicit authorization to archive the `.fos` alone;
+5. if authorization is given, record `f4seCoSave.status` as `missing`.
+
+If it is explicitly confirmed that F4SE was not used for the save, record `f4seCoSave.status` as `not-applicable`.
+
+If there is insufficient evidence, use `unknown`.
+
+## Git LFS requirements
+
+Both save extensions must be managed by Git LFS through `.gitattributes`:
+
+```text
+*.fos
+*.FOS
+*.f4se
+*.F4SE
+```
+
+Before commit, verify the attributes for the actual checkpoint files:
+
+```powershell
+git check-attr filter -- '<checkpoint .fos path>' '<checkpoint .f4se path>'
+git lfs status
+```
+
+The `filter` result must be `lfs` for each present binary save file. If not, stop before commit and report the problem.
 
 ## `manifest.json`
 
-Generate valid UTF-8 JSON with at least:
+Generate valid UTF-8 JSON using schema version 2 or later, with at least:
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "checkpointId": "YYYY-MM-DD-short-description",
   "title": "Human-readable title",
   "branch": "main",
   "createdAt": "ISO-8601 timestamp",
   "save": {
-    "fileName": "original-save-file.fos",
-    "sizeBytes": 0,
-    "sha256": "lowercase SHA-256"
+    "fos": {
+      "fileName": "original-save-file.fos",
+      "sizeBytes": 0,
+      "sha256": "lowercase SHA-256"
+    },
+    "f4seCoSave": {
+      "status": "present",
+      "fileName": "original-save-file.f4se",
+      "sizeBytes": 0,
+      "sha256": "lowercase SHA-256"
+    }
   },
   "game": {
     "location": "unknown",
@@ -86,11 +154,22 @@ Generate valid UTF-8 JSON with at least:
 }
 ```
 
-Compute the hash locally. On PowerShell:
+Allowed `f4seCoSave.status` values:
+
+- `present`
+- `missing`
+- `not-applicable`
+- `unknown`
+
+When status is `present`, `fileName`, `sizeBytes`, and `sha256` are required.
+
+Compute hashes locally. On PowerShell:
 
 ```powershell
 (Get-FileHash -Algorithm SHA256 -LiteralPath '<file>').Hash.ToLowerInvariant()
 ```
+
+Compute and verify the file size and SHA-256 separately for every present `.fos` and `.f4se` file.
 
 Do not invent file size, hash, timestamps, task stages, Form IDs, or numerical game data.
 
@@ -102,6 +181,7 @@ Use these sections unless a section clearly does not apply:
 # Checkpoint title
 
 ## Basic information
+## Save-pair integrity
 ## Current main quest
 ## Faction state
 ## Active quests
@@ -113,6 +193,14 @@ Use these sections unless a section clearly does not apply:
 ## Restore instructions
 ## Unknown or unverified information
 ```
+
+The `Save-pair integrity` section should state:
+
+- `.fos` filename;
+- `.f4se` filename or status;
+- whether basenames match;
+- whether both hashes were verified;
+- whether the save was loaded and tested after archival.
 
 For each faction, explicitly state:
 
@@ -154,12 +242,13 @@ For a normal checkpoint on the current branch:
 ```powershell
 git add -- <checkpoint directory>
 git diff --cached --stat
-git diff --cached -- progress.md manifest.json
+git diff --cached -- <checkpoint progress.md> <checkpoint manifest.json>
+git lfs status
 git commit -m "checkpoint: <short description>"
 git push origin HEAD
 ```
 
-Binary `.fos` files will not have a readable diff. Confirm their path, size, and SHA-256 before commit.
+Binary `.fos` and `.f4se` files will not have readable diffs. Confirm their paths, matching basenames, sizes, SHA-256 values, and Git LFS status before commit.
 
 For an irreversible faction split from `main`:
 
@@ -172,15 +261,28 @@ git push -u origin story/<faction>
 
 Do not create all faction branches in advance. Create each branch at the actual split point.
 
+## Restore workflow
+
+When restoring a checkpoint:
+
+1. validate the `.fos` SHA-256;
+2. validate the `.f4se` SHA-256 when status is `present`;
+3. verify the two basenames match;
+4. back up any existing destination files;
+5. copy both files into the Fallout 4 saves directory;
+6. restore the recorded Fallout 4 runtime, F4SE, DLC, Creation, plugin order, and relevant mods;
+7. do not silently restore a `.fos` without its required `.f4se` co-save.
+
 ## Validation before finishing
 
 Always report:
 
 - current branch;
 - checkpoint directory;
-- save filename;
-- file size;
-- SHA-256;
+- `.fos` filename, size, and SHA-256;
+- `.f4se` filename, size, SHA-256, or explicit status;
+- whether the basenames match;
+- Git LFS status for each present save file;
 - files created or changed;
 - commit hash, if committed;
 - push result;
