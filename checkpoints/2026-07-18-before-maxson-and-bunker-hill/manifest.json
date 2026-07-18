@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "checkpointId": "2026-07-18-before-maxson-and-bunker-hill",
+  "title": "Blind Betrayal started; before meeting Maxson and Battle of Bunker Hill",
+  "branch": "main",
+  "createdAt": "2026-07-18T18:04:19.4995902+08:00",
+  "save": {
+    "fos": {
+      "fileName": "Save20_0844E2E3M416E646572736F6E_Commonwealth_031406_20260718090525_106_2.fos",
+      "sizeBytes": 13382240,
+      "sha256": "f3370209c838e909fc0034158bf3991ec68cf88d984bf0b63bb12f66e34ad1d7"
+    },
+    "f4seCoSave": {
+      "status": "present",
+      "fileName": "Save20_0844E2E3M416E646572736F6E_Commonwealth_031406_20260718090525_106_2.f4se",
+      "sizeBytes": 783,
+      "sha256": "dd16387bde343ace10d0b38e719325ac96ed9b8ac7e341ef870a8b0338de6d2d"
+    }
+  },
+  "game": {
+    "location": "Boston Airport",
+    "playTime": "3d 14h 19m",
+    "inGameDate": "3.25.2288",
+    "currentCompanion": "Ada"
+  }
+}
