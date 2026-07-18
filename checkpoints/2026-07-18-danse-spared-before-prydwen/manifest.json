@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "checkpointId": "2026-07-18-danse-spared-before-prydwen",
+  "title": "Danse spared; before reporting to Maxson on the Prydwen",
+  "branch": "main",
+  "createdAt": "2026-07-19T05:04:26.9614679+08:00",
+  "save": {
+    "fos": {
+      "fileName": "Autosave2_0844E2E3M416E646572736F6E_Commonwealth_031550_20260718202633_106_2.fos",
+      "sizeBytes": 15396341,
+      "sha256": "c09f35dff19b57d1b97dab445814e0fe100f297051cfb52fde34bc6709a7cc1c"
+    },
+    "f4seCoSave": {
+      "status": "present",
+      "fileName": "Autosave2_0844E2E3M416E646572736F6E_Commonwealth_031550_20260718202633_106_2.f4se",
+      "sizeBytes": 783,
+      "sha256": "dd16387bde343ace10d0b38e719325ac96ed9b8ac7e341ef870a8b0338de6d2d"
+    }
+  },
+  "game": {
+    "location": "Commonwealth",
+    "playTime": "3d 15h 50m",
+    "inGameDate": "unknown",
+    "currentCompanion": "Curie"
+  }
+}
