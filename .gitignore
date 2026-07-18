@@ -1,0 +1,9 @@
+/incoming-saves/*
+!/incoming-saves/README.md
+
+# Local temporary files
+*.tmp
+*.bak
+*.log
+.env
+.env.*
