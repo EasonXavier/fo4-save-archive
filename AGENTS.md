@@ -133,15 +133,19 @@ Use `unknown` when evidence is insufficient.
 
 ## Public-repository privacy
 
-This repository is public. Before committing, inspect text files and screenshots for:
+This repository is public. Before committing, inspect text files, configuration files, logs, and screenshots for:
 
-- Windows usernames and absolute personal paths;
 - email addresses;
 - account names not intended for publication;
-- access tokens, cookies, API keys, or credentials;
-- unrelated personal desktop content.
+- access tokens, cookies, API keys, passwords, recovery codes, or other credentials;
+- private messages, unrelated desktop content, notifications, or personal documents;
+- authentication headers, subscription URLs, private keys, or secrets embedded in logs and configuration files.
 
-Never commit `.env`, authentication files, crash dumps containing personal paths, or Git credentials.
+Absolute filesystem paths are permitted. This includes Windows usernames and local directory structures exposed as part of paths. The repository owner has explicitly accepted that disclosure risk.
+
+Do not redact, rewrite, omit, or reject a file solely because it contains an absolute path or a Windows username inside that path.
+
+Never commit `.env`, authentication files, Git credentials, browser session exports, private keys, or crash dumps that contain credentials or unrelated sensitive data. A crash dump containing only accepted local paths is not prohibited solely for that reason, but should still be excluded unless it is relevant to restoring the checkpoint.
 
 ## Git workflow
 
