@@ -2,32 +2,34 @@
 
 ## Purpose
 
-This repository archives Fallout 4 save checkpoints and their narrative context. Treat save integrity and factual task-state accuracy as more important than convenience.
+This repository archives Fallout 4 save checkpoints and their narrative context. Save integrity, branch correctness, and factual quest-state accuracy take priority over convenience.
 
 When F4SE is used, treat the matching `.fos` and `.f4se` files as one logical save pair.
 
 ## Source of truth
 
-Use only the following as evidence for a checkpoint:
+Use only:
 
-1. the save files supplied by the user;
+1. save files supplied by the user;
 2. screenshots supplied by the user;
-3. explicit statements supplied by the user;
-4. existing metadata already committed for an earlier checkpoint.
+3. explicit user statements;
+4. metadata already committed for an earlier checkpoint.
 
-Do not infer an unshown quest state from general Fallout 4 knowledge. Mark uncertain fields as `unknown` or `待确认`.
+Do not infer unshown quest states from general Fallout 4 knowledge.
+
+Only fields inside the repository's tracking scope may be marked `unknown` or `待确认`. Deliberately untracked fields must be omitted rather than reported as missing information.
 
 ## Branch rules
 
 - `main` contains the shared timeline before a final faction route is locked.
-- Early or mid-game faction quests may remain on `main` while all major endings are still available.
-- Create a `story/*` branch only after an irreversible faction split, permanent hostility, explicit lockout warning, or deliberate commitment to a faction ending.
-- Standard faction branches are:
+- Early and mid-game faction quests may remain on `main` while all major endings remain available.
+- Create `story/*` only after an irreversible faction split, permanent hostility, explicit lockout warning, or deliberate commitment to a faction ending.
+- Standard branches:
   - `story/brotherhood`
   - `story/railroad`
   - `story/institute`
   - `story/minutemen`
-- Do not merge a completed faction storyline back into `main`.
+- Never merge a completed faction storyline back into `main`.
 - Never force-push or rewrite published checkpoint history.
 
 Before creating or updating a checkpoint, run:
@@ -44,65 +46,53 @@ If the current branch does not match the checkpoint's story state, stop and expl
 
 ## Incoming staging directory
 
-The local staging directory is:
-
 ```text
 incoming-saves/
 ```
 
 Actual save payloads in this directory are ignored by Git.
 
-- Read files from `incoming-saves`, but do not commit them directly from that directory.
+- Read from `incoming-saves`, but do not commit files directly from it.
 - Copy files into a new checkpoint directory.
-- Do not move, rename, modify, overwrite, or delete the staging originals.
-- Do not remove an incoming file after a successful checkpoint unless the user explicitly requests it.
+- Do not move, rename, modify, overwrite, or delete staging originals.
+- Do not remove incoming files after a successful checkpoint unless the user explicitly requests it.
 
-## Checkpoint rules
-
-Each save must be placed in a new directory:
+## Checkpoint structure
 
 ```text
 checkpoints/YYYY-MM-DD-short-description/
+  save/<original basename>.fos
+  save/<original basename>.f4se
+  progress.md
+  manifest.json
+  screenshots/                    # optional
 ```
 
-A checkpoint should contain:
+## Save-pair requirements
 
-```text
-save/<original basename>.fos
-save/<original basename>.f4se   # required when the matching co-save exists
-progress.md
-manifest.json
-screenshots/                    # optional
-environment/                    # optional
-```
-
-### Save-pair requirements
-
-- `.fos` is the primary Fallout 4 save and is always required.
-- `.f4se` is the F4SE co-save used by F4SE plugins for additional serialized state.
-- The two files must have exactly the same basename before the extension.
+- `.fos` is always required.
+- `.f4se` is the F4SE co-save.
+- Both files must have exactly the same basename before the extension.
 - If a matching `.f4se` exists, archive it with the `.fos`.
-- Never pair a `.fos` with a similarly named but non-matching `.f4se`.
+- Never pair a `.fos` with a non-matching `.f4se`.
 - Never generate an empty or replacement `.f4se`.
 - Never overwrite, rename, edit, normalize, compress, or otherwise modify either supplied file.
 - Preserve both original filenames.
-- Do not delete older save files because a newer checkpoint exists.
+- Do not delete older saves because a newer checkpoint exists.
 
-If the user is known to use F4SE but the exact matching `.f4se` is missing:
+If F4SE is known to be in use but the exact matching `.f4se` is missing:
 
 1. stop before commit;
 2. report the missing co-save;
 3. do not substitute another file;
-4. wait for explicit authorization to archive the `.fos` alone;
-5. if authorization is given, record `f4seCoSave.status` as `missing`.
+4. wait for explicit authorization to archive `.fos` alone;
+5. only after authorization, record `f4seCoSave.status` as `missing`.
 
-If it is explicitly confirmed that F4SE was not used for the save, record `f4seCoSave.status` as `not-applicable`.
-
-If there is insufficient evidence, use `unknown`.
+Use `not-applicable` only when the user explicitly confirms F4SE did not apply. Use `unknown` only when the co-save applicability cannot be determined.
 
 ## Git LFS requirements
 
-Both save extensions must be managed by Git LFS through `.gitattributes`:
+Both save extensions must be managed by Git LFS:
 
 ```text
 *.fos
@@ -111,18 +101,18 @@ Both save extensions must be managed by Git LFS through `.gitattributes`:
 *.F4SE
 ```
 
-Before commit, verify the attributes for the actual checkpoint files:
+Before commit:
 
 ```powershell
 git check-attr filter -- '<checkpoint .fos path>' '<checkpoint .f4se path>'
 git lfs status
 ```
 
-The `filter` result must be `lfs` for each present binary save file. If not, stop before commit and report the problem.
+Each present binary save file must report `filter: lfs`. Otherwise stop before commit.
 
 ## `manifest.json`
 
-Generate valid UTF-8 JSON using schema version 2 or later, with at least:
+Use valid UTF-8 JSON with schema version 2 or later:
 
 ```json
 {
@@ -149,8 +139,7 @@ Generate valid UTF-8 JSON using schema version 2 or later, with at least:
     "playTime": "unknown",
     "inGameDate": "unknown",
     "currentCompanion": "unknown"
-  },
-  "restoreTested": false
+  }
 }
 ```
 
@@ -163,19 +152,43 @@ Allowed `f4seCoSave.status` values:
 
 When status is `present`, `fileName`, `sizeBytes`, and `sha256` are required.
 
-Compute hashes locally. On PowerShell:
+Compute the size and SHA-256 separately for every present `.fos` and `.f4se`:
 
 ```powershell
 (Get-FileHash -Algorithm SHA256 -LiteralPath '<file>').Hash.ToLowerInvariant()
 ```
 
-Compute and verify the file size and SHA-256 separately for every present `.fos` and `.f4se` file.
+Do not invent file sizes, hashes, timestamps, quest status, faction state, Form IDs, or other numerical game data.
 
-Do not invent file size, hash, timestamps, task stages, Form IDs, or numerical game data.
+## Tracking scope
+
+Record by default:
+
+- current location, companion, in-game date, and play time;
+- current main and faction quest names with coarse progress descriptions;
+- whether each major faction is hostile, whether its route remains available, and whether an irreversible branch has begun;
+- important changes since the previous checkpoint;
+- important companion, NPC, DLC, settlement, and key-choice state supplied by the user;
+- save-pair integrity;
+- relevant console commands supplied by the user;
+- narrative restoration warnings.
+
+Do **not** request, generate, or list as `unknown` by default:
+
+- exact Pip-Boy objective wording;
+- quest stage numbers, Form IDs, or internal stage identifiers;
+- Fallout 4 runtime version;
+- exact F4SE version;
+- mod lists, plugin lists, or load order;
+- save restore-test results.
+
+F4SE use must still be recorded as a boolean/context fact because the `.f4se` co-save is archived. Its precise version is outside scope.
+
+When the user says other quests, settlements, NPCs, or technical details will not be supplemented, add one concise statement such as `Other quest states were not updated for this checkpoint.` Do not expand this into many unknown fields.
 
 ## `progress.md`
 
-Use these sections unless a section clearly does not apply:
+Use these sections unless clearly inapplicable:
 
 ```markdown
 # Checkpoint title
@@ -188,56 +201,67 @@ Use these sections unless a section clearly does not apply:
 ## Completed since previous checkpoint
 ## Companions and important NPCs
 ## DLC and settlements
-## Mod and runtime environment
 ## Irreversible-state assessment
 ## Restore instructions
 ## Unknown or unverified information
 ```
 
-The `Save-pair integrity` section should state:
+The `Save-pair integrity` section records:
 
 - `.fos` filename;
 - `.f4se` filename or status;
 - whether basenames match;
 - whether both hashes were verified;
-- whether the save was loaded and tested after archival.
+- Git LFS status.
 
-For each faction, explicitly state:
+Do not add a restore-tested field or request a load test.
 
-- current known quest state;
+For each major faction, state when supported:
+
+- current known quest status;
 - hostile or non-hostile;
-- whether its questline remains available;
-- whether an irreversible branch has been entered.
+- whether the route remains available;
+- whether an irreversible branch has begun.
 
-Use `unknown` when evidence is insufficient.
+## Narrative rules
 
-## Fallout 4 narrative rules
+- Distinguish available, active, completed, failed, and not-recorded quests.
+- Absence from one screenshot does not prove completion or failure.
+- Helping a faction early does not lock its ending.
+- Flag irreversible conditions only when supported by current evidence.
+- Record coarse progress; exact objective text and internal stage numbers are outside scope.
+- Separate checkpoint facts from route recommendations.
+- Do not add unnecessary spoilers.
 
-- Distinguish a quest being available, active, completed, failed, or merely absent from one screenshot.
-- Do not treat helping a faction with an early quest as locking its ending.
-- Explicitly flag known irreversible conditions only when they are supported by the user's current progress.
-- Separate factual checkpoint metadata from route recommendations.
-- Do not add spoilers that are unnecessary for identifying the checkpoint.
+## DLC and environment policy
+
+DLC and Creation installation state may be recorded from user statements or screenshots.
+
+Do not maintain a default inventory of:
+
+- game runtime versions;
+- F4SE versions;
+- installed mods;
+- plugins;
+- load order.
+
+Technical files may only be added when the user explicitly asks for them for a specific checkpoint.
 
 ## Public-repository privacy
 
-This repository is public. Before committing, inspect text files, configuration files, logs, and screenshots for:
+This repository is public. Inspect text, configuration files, logs, and screenshots for:
 
 - email addresses;
 - account names not intended for publication;
-- access tokens, cookies, API keys, passwords, recovery codes, or other credentials;
-- private messages, unrelated desktop content, notifications, or personal documents;
-- authentication headers, subscription URLs, private keys, or secrets embedded in logs and configuration files.
+- access tokens, cookies, API keys, passwords, recovery codes, and credentials;
+- private messages, unrelated desktop content, notifications, and personal documents;
+- authentication headers, subscription URLs, private keys, and secrets.
 
-Absolute filesystem paths are permitted. This includes Windows usernames and local directory structures exposed as part of paths. The repository owner has explicitly accepted that disclosure risk.
+Absolute filesystem paths are permitted, including Windows usernames and local directory structures. Do not redact or reject a file solely for that reason.
 
-Do not redact, rewrite, omit, or reject a file solely because it contains an absolute path or a Windows username inside that path.
-
-Never commit `.env`, authentication files, Git credentials, browser session exports, private keys, or crash dumps that contain credentials or unrelated sensitive data. A crash dump containing only accepted local paths is not prohibited solely for that reason, but should still be excluded unless it is relevant to restoring the checkpoint.
+Never commit `.env`, authentication files, Git credentials, browser session exports, private keys, or unrelated sensitive dumps.
 
 ## Git workflow
-
-For a normal checkpoint on the current branch:
 
 ```powershell
 git add -- <checkpoint directory>
@@ -248,9 +272,9 @@ git commit -m "checkpoint: <short description>"
 git push origin HEAD
 ```
 
-Binary `.fos` and `.f4se` files will not have readable diffs. Confirm their paths, matching basenames, sizes, SHA-256 values, and Git LFS status before commit.
+Binary `.fos` and `.f4se` files have no readable diff. Confirm paths, matching basenames, sizes, hashes, and Git LFS status before commit.
 
-For an irreversible faction split from `main`:
+For an irreversible faction split:
 
 ```powershell
 git switch main
@@ -259,19 +283,19 @@ git switch -c story/<faction>
 git push -u origin story/<faction>
 ```
 
-Do not create all faction branches in advance. Create each branch at the actual split point.
+Do not create faction branches in advance.
 
 ## Restore workflow
 
-When restoring a checkpoint:
-
-1. validate the `.fos` SHA-256;
-2. validate the `.f4se` SHA-256 when status is `present`;
-3. verify the two basenames match;
-4. back up any existing destination files;
+1. validate `.fos` SHA-256;
+2. validate `.f4se` SHA-256 when present;
+3. verify matching basenames;
+4. back up destination files;
 5. copy both files into the Fallout 4 saves directory;
-6. restore the recorded Fallout 4 runtime, F4SE, DLC, Creation, plugin order, and relevant mods;
-7. do not silently restore a `.fos` without its required `.f4se` co-save.
+6. confirm required DLC, Creation content, and relevant mods are available using the user's current environment;
+7. do not silently restore `.fos` without its required `.f4se`.
+
+The repository does not track exact runtime, F4SE, mod, plugin, or load-order versions by default, and does not record restoration testing.
 
 ## Validation before finishing
 
@@ -281,11 +305,11 @@ Always report:
 - checkpoint directory;
 - `.fos` filename, size, and SHA-256;
 - `.f4se` filename, size, SHA-256, or explicit status;
-- whether the basenames match;
-- Git LFS status for each present save file;
+- whether basenames match;
+- Git LFS status;
 - files created or changed;
 - commit hash, if committed;
 - push result;
-- any uncertain task-state fields.
+- only unresolved fields that are inside the defined tracking scope.
 
 Do not claim a push succeeded unless `git push` completed successfully.
